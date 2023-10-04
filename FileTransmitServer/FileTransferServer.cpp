@@ -1,48 +1,47 @@
 #include "FileTransferServer.hpp"
 
+FileTransferServer::FileTransferAgent::FileTransferAgent(asio::io_service& service, std::filesystem::path filePath, tcp::socket&& socket)
+	: m_service(service), m_socket{ std::move(socket) }
+{
+	m_inFile.open(filePath, std::ios::binary | std::ios::_Nocreate);
+	if (!m_inFile)
+		throw std::invalid_argument("Cannot open file");
+	asio::error_code code;
+	while (!code) {
+		m_inFile.read(m_data.data(), m_data.size());
+		size_t bytesRead = m_inFile.gcount();
+		if (bytesRead > 0)
+			m_socket.write_some(asio::buffer(m_data, bytesRead), code);
+		else
+			break;
+	}
+	m_socket.shutdown(tcp::socket::shutdown_send);
+}
+
 FileTransferServer::FileTransferServer(asio::io_service& service, unsigned port)
-	:m_service(service), m_endpoint(tcp::v4(), port), m_socket(service), m_acceptor(service, m_endpoint),
+	:m_service(service), m_endpoint(tcp::v4(), port),
 	m_curPath(std::filesystem::current_path())
 {}
 
-void FileTransferServer::asyncSendFile(std::string_view fileName) {
-	auto filePath = m_curPath;
+FileTransferServer::~FileTransferServer() {
+	m_stop = true;
+}
+
+void FileTransferServer::start(std::string_view fileName) {
+	asio::error_code code;
+	auto filePath{ m_curPath };
 	filePath.append(fileName);
-	m_inFile.open(filePath, std::ios::binary | std::ios::_Nocreate);
-	if (!m_inFile)
-		throw std::invalid_argument(std::format("Cannot open file {}\n", fileName));
-	m_acceptor.listen();
-	m_acceptor.async_accept(m_socket, std::bind(&FileTransferServer::acceptHandler, this, std::placeholders::_1));
-}
-
-void FileTransferServer::writeHandler(const asio::error_code& code, size_t bytesTransferred) {
-	if (!code) {
-		if (m_inFile) {
-			m_inFile.read(m_data.data(), m_data.size());
-			size_t bytesRead = m_inFile.gcount();
-			if (bytesRead > 0)
-				m_socket.async_write_some(asio::buffer(m_data, bytesRead), std::bind(&FileTransferServer::writeHandler, this, std::placeholders::_1, std::placeholders::_2));
-			else
-				m_socket.shutdown(tcp::socket::shutdown_send);
+	while (!m_stop) {
+		tcp::socket socket{ m_service };
+		tcp::acceptor accpetor{ m_service, m_endpoint };
+		accpetor.listen();
+		accpetor.accept(socket, code);
+		if (!code) {
+			FileTransferAgent agent{ m_service, filePath, std::move(socket) };
 		}
-	}
-	else {
-		m_socket.shutdown(tcp::socket::shutdown_send);
 	}
 }
 
-void FileTransferServer::acceptHandler(const asio::error_code& code) {
-	if (!code) {
-		if (m_inFile) {
-			m_inFile.read(m_data.data(), m_data.size());
-			size_t bytesRead = m_inFile.gcount();
-			if (bytesRead > 0)
-				m_socket.async_write_some(asio::buffer(m_data, bytesRead), std::bind(&FileTransferServer::writeHandler, this, std::placeholders::_1, std::placeholders::_2));
-			else
-				m_socket.shutdown(tcp::socket::shutdown_send);
-		}
-		else {
-			m_socket.shutdown(tcp::socket::shutdown_send);
-		}
-	}
+void FileTransferServer::stop() {
+	m_stop = true;
 }
