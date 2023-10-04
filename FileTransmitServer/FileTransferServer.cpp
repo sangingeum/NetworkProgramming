@@ -37,7 +37,10 @@ void FileTransferServer::start(std::string_view fileName) {
 		accpetor.listen();
 		accpetor.accept(socket, code);
 		if (!code) {
-			FileTransferAgent agent{ m_service, filePath, std::move(socket) };
+			std::thread agentThread([this, filePath, movedSocket = std::move(socket)]() mutable {
+				FileTransferAgent agent{ m_service, filePath, std::move(movedSocket) };
+				});
+			agentThread.detach();
 		}
 	}
 }
