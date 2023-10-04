@@ -15,12 +15,11 @@ class FileTransferServer
 private:
 	class FileTransferAgent {
 	private:
-		asio::io_service& m_service;
 		tcp::socket m_socket;
 		std::ifstream m_inFile;
 		std::array<char, 1024> m_data{};
 	public:
-		FileTransferAgent(asio::io_service& service, std::filesystem::path filePath, tcp::socket&& socket);
+		FileTransferAgent(std::filesystem::path filePath, tcp::socket&& socket);
 	};
 
 	asio::io_service& m_service;

@@ -1,7 +1,7 @@
 #include "FileTransferServer.hpp"
 
-FileTransferServer::FileTransferAgent::FileTransferAgent(asio::io_service& service, std::filesystem::path filePath, tcp::socket&& socket)
-	: m_service(service), m_socket{ std::move(socket) }
+FileTransferServer::FileTransferAgent::FileTransferAgent(std::filesystem::path filePath, tcp::socket&& socket)
+	: m_socket{ std::move(socket) }
 {
 	m_inFile.open(filePath, std::ios::binary | std::ios::_Nocreate);
 	if (!m_inFile)
@@ -38,7 +38,7 @@ void FileTransferServer::start(std::string_view fileName) {
 		accpetor.accept(socket, code);
 		if (!code) {
 			std::thread agentThread([this, filePath, movedSocket = std::move(socket)]() mutable {
-				FileTransferAgent agent{ m_service, filePath, std::move(movedSocket) };
+				FileTransferAgent agent{ filePath, std::move(movedSocket) };
 				});
 			agentThread.detach();
 		}

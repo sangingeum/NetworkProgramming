@@ -24,8 +24,8 @@ public:
 	void asyncGetFile(std::string_view fileName, std::string_view host, std::string_view port);
 private:
 	void readHandler(const asio::error_code& code, size_t bytesTransferred);
-	void connectHandler(const asio::error_code& code);
-	void resolverHandler(const asio::error_code& code, tcp::resolver::iterator it);
+	void connectHandler(std::string_view fileName, const asio::error_code& code);
+	void resolverHandler(std::string_view fileName, const asio::error_code& code, tcp::resolver::iterator it);
 
 };
 
