@@ -20,6 +20,7 @@ private:
 	std::vector<ChatMessage> m_messages;
 	std::deque<asio::steady_timer> m_timers;
 	const std::chrono::seconds m_recheckTime{ 1 };
+	static constexpr uint32_t BufferSize{ 2048 };
 public:
 	ChatServer(asio::io_service& service, unsigned port)
 		:m_service(service), m_endpoint(tcp::v4(), port)
@@ -52,7 +53,7 @@ private:
 
 	void handleClient(std::shared_ptr<tcp::socket> socket) {
 		// Handle Read
-		std::array<char, 1024> data;
+		std::array<char, BufferSize> data;
 		socket->async_read_some(asio::buffer(data.data(), data.size()), [socket, &data, this](const asio::error_code& code, size_t bytesRead) {
 			if (!code) {
 				std::string dataString{ data.data(), bytesRead };
@@ -66,8 +67,8 @@ private:
 	}
 
 	void readHandler(std::shared_ptr<tcp::socket> socket, std::string dataLeft, const asio::error_code& code, size_t bytesRead) {
-		std::array<char, 1024> data;
-		socket->async_read_some(asio::buffer(data.data(), data.size()), [socket, &data, this, &dataLeft](const asio::error_code& code, size_t bytesRead) {
+		std::array<char, BufferSize> data;
+		socket->async_read_some(asio::buffer(data.data(), data.size()), [socket, &data, this, dataLeft](const asio::error_code& code, size_t bytesRead) mutable {
 			if (!code) {
 				dataLeft.append(data.data(), bytesRead);
 				ChatMessage msg;
@@ -80,17 +81,22 @@ private:
 				// Remove from the list?
 				if (code.value() == 2) // End of file error
 				{
+					// Call the readHandler after a while
 					m_timers.push_back(asio::steady_timer{ m_service });
 					auto& timer = m_timers.back();
 					timer.expires_after(m_recheckTime);
-					timer.async_wait([socket, &data, this, &dataLeft, &code, bytesRead](const asio::error_code& code) {
+					timer.async_wait([socket, &data, this, dataLeft, &code, bytesRead](const asio::error_code& code) mutable {
 						readHandler(socket, std::move(dataLeft), code, bytesRead);
 						if (m_timers.size() > 1)
 							m_timers.pop_front();
 						});
 				}
-				else
+				else {
+					std::cout << "Deleting in readHandler\n";
 					removeClient(socket);
+
+				}
+
 			}
 			});
 	}
@@ -99,23 +105,26 @@ private:
 
 	}
 
+	void updateClient(ChatMessage msg) {
+		auto serialization = msg.serialize();
+		for (auto& socket : m_clients) {
+			asio::async_write(*socket, asio::buffer(serialization.data(), serialization.size()), [this, socket](const asio::error_code& code, size_t bytesRead) {
+				if (code) {
+					std::cout << "Deleting in writeHandler\n";
+					removeClient(socket);
+				}
+				else {
+					std::cout << "Sent\n";
+				}
+				});
+		}
+	}
+
 	void appendMessage(ChatMessage msg) {
 		std::cout << msg.getName() << ": " << msg.getContent() << "\n";
 		m_messages.push_back(msg);
 		updateClient(std::move(msg));
 	}
-
-	void updateClient(ChatMessage msg) {
-		/*
-		for (auto it = m_clients.begin(); it != m_clients.end(); ++it) {
-			auto& socket = (**it);
-			if (socket.is_open()) {
-				socket.async_send(std::bu)
-			}
-		}
-		*/
-	}
-
 
 	void removeClient(std::shared_ptr<tcp::socket> socket) {
 		auto it = std::remove(m_clients.begin(), m_clients.end(), socket);
