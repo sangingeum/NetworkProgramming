@@ -7,7 +7,6 @@
 #include <exception>
 #include <chrono>
 
-using namespace std::chrono_literals;
 using namespace asio::ip;
 
 class FileTransferServer
@@ -26,7 +25,6 @@ private:
 	tcp::endpoint m_endpoint;
 	std::filesystem::path m_curPath;
 	std::atomic<bool> m_stop{ false };
-	std::vector<FileTransferAgent> agents;
 public:
 	FileTransferServer(asio::io_service& service, unsigned port);
 	~FileTransferServer();

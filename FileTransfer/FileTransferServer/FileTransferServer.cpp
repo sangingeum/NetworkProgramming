@@ -25,13 +25,14 @@ FileTransferServer::FileTransferServer(asio::io_service& service, unsigned port)
 {}
 
 FileTransferServer::~FileTransferServer() {
-	m_stop = true;
+	stop();
 }
 
 void FileTransferServer::start(std::string_view fileName) {
 	asio::error_code code;
 	auto filePath{ m_curPath };
 	filePath.append(fileName);
+	m_stop = true;
 	while (!m_stop) {
 		tcp::socket socket{ m_service };
 		tcp::acceptor accpetor{ m_service, m_endpoint };
