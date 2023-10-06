@@ -32,7 +32,7 @@ void FileTransferServer::start(std::string_view fileName) {
 	asio::error_code code;
 	auto filePath{ m_curPath };
 	filePath.append(fileName);
-	m_stop = true;
+	m_stop = false;
 	while (!m_stop) {
 		tcp::socket socket{ m_service };
 		tcp::acceptor accpetor{ m_service, m_endpoint };
