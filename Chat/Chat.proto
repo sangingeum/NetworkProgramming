@@ -1,0 +1,6 @@
+syntax = "proto2";
+
+message Chat {
+  optional string name = 1;
+  optional string content = 2;
+}
