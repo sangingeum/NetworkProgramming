@@ -16,6 +16,7 @@ FileTransferServer::FileTransferAgent::FileTransferAgent(std::filesystem::path f
 			break;
 	}
 	m_socket.shutdown(tcp::socket::shutdown_send);
+	m_socket.close();
 }
 
 FileTransferServer::FileTransferServer(asio::io_service& service, unsigned port)
