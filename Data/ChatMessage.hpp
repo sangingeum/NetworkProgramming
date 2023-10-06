@@ -32,6 +32,14 @@ public:
 		return m_serialization;
 	}
 
+	const std::string& getName() const {
+		return m_data.name();
+	}
+
+	const std::string& getContent() const {
+		return m_data.content();
+	}
+
 	// DeSerialize and shorten the given string
 	// It returns true on success
 	bool deSerialize(std::string& serialization) {
