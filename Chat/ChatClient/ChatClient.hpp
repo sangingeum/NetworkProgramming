@@ -2,7 +2,7 @@
 #include <asio.hpp>
 #include <string>
 #include <string_view>
-#include "Chat.pb.h"
+#include "ChatMessage.hpp"
 using namespace asio::ip;
 
 // chat wrapper에서 길이 해더 정하자
@@ -14,14 +14,11 @@ private:
 	asio::io_service& m_service;
 	tcp::socket m_socket;
 	std::string_view m_name;
-	Chat m_baseChat;
 public:
 
 	ChatClient(asio::io_service& service, std::string_view name)
 		: m_service(service), m_socket(service), m_name(name)
-	{
-		m_baseChat.set_name(name.data());
-	}
+	{}
 
 	bool connect(std::string_view address, std::string_view port) {
 		if (m_socket.is_open())
@@ -41,10 +38,10 @@ public:
 	bool send(std::string_view content) {
 		if (!m_socket.is_open())
 			return false;
-		Chat chat{ m_baseChat };
-		chat.set_content(content.data());
+		ChatMessage chat{ m_name, content };
 		asio::error_code code;
-		asio::streambuf buf;
+		auto serialization = chat.serialize();
+		asio::write(m_socket, asio::buffer(serialization, serialization.size()));
 		return true;
 	}
 
@@ -56,7 +53,7 @@ public:
 	}
 
 	void changeName(std::string_view name) {
-		m_baseChat.set_name(name.data());
+		m_name = name;
 	}
 private:
 
