@@ -7,7 +7,11 @@ int main() {
 	ChatClient client{ service, "Keum" };
 
 	if (client.connect("127.0.0.1", "13579"))
-		client.send("good morning");
+		while (true) {
+			std::string content;
+			std::getline(std::cin, content, '\n');
+			client.send(content);
+		}
 	else
 		std::cout << "Error\n";
 
