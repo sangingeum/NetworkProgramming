@@ -5,6 +5,8 @@
 #include "Chat.pb.h"
 using namespace asio::ip;
 
+// chat wrapper에서 길이 해더 정하자
+// https://protobuf.dev/programming-guides/techniques/
 class ChatClient
 {
 
@@ -42,10 +44,7 @@ public:
 		Chat chat{ m_baseChat };
 		chat.set_content(content.data());
 		asio::error_code code;
-		// 
-		m_socket.write_some(chat.SerializeAsString(), code);
-		if (code)
-			return false;
+		asio::streambuf buf;
 		return true;
 	}
 

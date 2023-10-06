@@ -4,14 +4,20 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.7.34031.279
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChatClient", "Chat\ChatClient\ChatClient.vcxproj", "{012EA74F-51A1-4D9D-B589-BF795200F2D4}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6529C13C-1704-413B-A416-0AC0DC1174D1} = {6529C13C-1704-413B-A416-0AC0DC1174D1}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChatServer", "Chat\ChatServer\ChatServer.vcxproj", "{183F936B-5BAE-4847-AF81-D45D38B61AC5}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6529C13C-1704-413B-A416-0AC0DC1174D1} = {6529C13C-1704-413B-A416-0AC0DC1174D1}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FileTransmitClient", "FileTransfer\FileTransferClient\FileTransmitClient.vcxproj", "{7E931A7A-3817-4C78-A949-935A3B2A46EC}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FileTransmitServer", "FileTransfer\FileTransferServer\FileTransmitServer.vcxproj", "{D99241C0-99BF-4D48-B15A-00E07B5B7897}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Data", "Data\Data.vcxproj", "{1440686C-120A-4F89-A496-16B10F85BC5E}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Data", "Data\Data.vcxproj", "{6529C13C-1704-413B-A416-0AC0DC1174D1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -53,14 +59,14 @@ Global
 		{D99241C0-99BF-4D48-B15A-00E07B5B7897}.Release|x64.Build.0 = Release|x64
 		{D99241C0-99BF-4D48-B15A-00E07B5B7897}.Release|x86.ActiveCfg = Release|Win32
 		{D99241C0-99BF-4D48-B15A-00E07B5B7897}.Release|x86.Build.0 = Release|Win32
-		{1440686C-120A-4F89-A496-16B10F85BC5E}.Debug|x64.ActiveCfg = Debug|x64
-		{1440686C-120A-4F89-A496-16B10F85BC5E}.Debug|x64.Build.0 = Debug|x64
-		{1440686C-120A-4F89-A496-16B10F85BC5E}.Debug|x86.ActiveCfg = Debug|Win32
-		{1440686C-120A-4F89-A496-16B10F85BC5E}.Debug|x86.Build.0 = Debug|Win32
-		{1440686C-120A-4F89-A496-16B10F85BC5E}.Release|x64.ActiveCfg = Release|x64
-		{1440686C-120A-4F89-A496-16B10F85BC5E}.Release|x64.Build.0 = Release|x64
-		{1440686C-120A-4F89-A496-16B10F85BC5E}.Release|x86.ActiveCfg = Release|Win32
-		{1440686C-120A-4F89-A496-16B10F85BC5E}.Release|x86.Build.0 = Release|Win32
+		{6529C13C-1704-413B-A416-0AC0DC1174D1}.Debug|x64.ActiveCfg = Debug|x64
+		{6529C13C-1704-413B-A416-0AC0DC1174D1}.Debug|x64.Build.0 = Debug|x64
+		{6529C13C-1704-413B-A416-0AC0DC1174D1}.Debug|x86.ActiveCfg = Debug|Win32
+		{6529C13C-1704-413B-A416-0AC0DC1174D1}.Debug|x86.Build.0 = Debug|Win32
+		{6529C13C-1704-413B-A416-0AC0DC1174D1}.Release|x64.ActiveCfg = Release|x64
+		{6529C13C-1704-413B-A416-0AC0DC1174D1}.Release|x64.Build.0 = Release|x64
+		{6529C13C-1704-413B-A416-0AC0DC1174D1}.Release|x86.ActiveCfg = Release|Win32
+		{6529C13C-1704-413B-A416-0AC0DC1174D1}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
