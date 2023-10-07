@@ -45,8 +45,10 @@ private:
 
 	void handleClient(std::shared_ptr<tcp::socket> socket) {
 		// Handle Read
-		std::array<char, BufferSize> data;
-		socket->async_read_some(asio::buffer(data.data(), data.size()), [socket, &data, this](const asio::error_code& code, size_t bytesRead) {
+		auto dataPtr = std::make_shared<std::array<char, BufferSize>>();
+		auto& data = *dataPtr;
+		socket->async_read_some(asio::buffer(data.data(), data.size()), [socket, dataPtr, this](const asio::error_code& code, size_t bytesRead) {
+			auto& data = *dataPtr;
 			if (!code) {
 				std::string dataString{ data.data(), bytesRead };
 				ChatMessage msg;
@@ -59,8 +61,10 @@ private:
 	}
 
 	void readHandler(std::shared_ptr<tcp::socket> socket, std::string dataLeft, const asio::error_code& code, size_t bytesRead) {
-		std::array<char, BufferSize> data;
-		socket->async_read_some(asio::buffer(data.data(), data.size()), [socket, &data, this, dataLeft](const asio::error_code& code, size_t bytesRead) mutable {
+		auto dataPtr = std::make_shared<std::array<char, BufferSize>>();
+		auto& data = *dataPtr;
+		socket->async_read_some(asio::buffer(data.data(), data.size()), [socket, dataPtr, this, dataLeft](const asio::error_code& code, size_t bytesRead) mutable {
+			auto& data = *dataPtr;
 			if (!code) {
 				dataLeft.append(data.data(), bytesRead);
 				ChatMessage msg;
