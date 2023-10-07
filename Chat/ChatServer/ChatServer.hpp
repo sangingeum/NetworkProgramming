@@ -15,7 +15,6 @@ class ChatServer
 private:
 	asio::io_service& m_service;
 	tcp::endpoint m_endpoint;
-	std::atomic<bool> m_stop{ false };
 	std::vector<std::shared_ptr<tcp::socket>> m_clients;
 	std::vector<ChatMessage> m_messages;
 	std::deque<asio::steady_timer> m_timers;
@@ -25,17 +24,10 @@ public:
 	ChatServer(asio::io_service& service, unsigned port)
 		:m_service(service), m_endpoint(tcp::v4(), port)
 	{}
-	~ChatServer() {
-		stop();
-	}
 	void start() {
-		m_stop = false;
 		tcp::acceptor acceptor{ m_service, m_endpoint };
 		acceptClient(acceptor);
 		m_service.run();
-	}
-	void stop() {
-		m_stop = true;
 	}
 private:
 
@@ -92,17 +84,10 @@ private:
 						});
 				}
 				else {
-					std::cout << "Deleting in readHandler\n";
 					removeClient(socket);
-
 				}
-
 			}
 			});
-	}
-
-	void writeHandler(std::shared_ptr<tcp::socket> socket, size_t bytesRead) {
-
 	}
 
 	void updateClient(ChatMessage msg) {
@@ -110,11 +95,7 @@ private:
 		for (auto& socket : m_clients) {
 			asio::async_write(*socket, asio::buffer(serialization.data(), serialization.size()), [this, socket](const asio::error_code& code, size_t bytesRead) {
 				if (code) {
-					std::cout << "Deleting in writeHandler\n";
 					removeClient(socket);
-				}
-				else {
-					std::cout << "Sent\n";
 				}
 				});
 		}
@@ -128,8 +109,11 @@ private:
 
 	void removeClient(std::shared_ptr<tcp::socket> socket) {
 		auto it = std::remove(m_clients.begin(), m_clients.end(), socket);
-		if (it != m_clients.end())
+		if (it != m_clients.end()) {
 			m_clients.erase(it);
+			std::cout << "A client left\n";
+		}
+
 	}
 
 };

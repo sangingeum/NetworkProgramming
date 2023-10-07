@@ -5,12 +5,12 @@
 class ChatMessage
 {
 private:
-	static constexpr uint32_t headerSize = 4;
-	static constexpr uint32_t maxLength = 1024;
 	uint32_t m_size{ 0 };
 	std::string m_serialization{ "" };
 	Chat m_data;
 public:
+	static const constexpr uint32_t headerSize = 4;
+	static const constexpr uint32_t maxLength = 1024;
 	ChatMessage() = default;
 	ChatMessage(std::string_view name, std::string_view content)
 	{
@@ -38,6 +38,10 @@ public:
 
 	const std::string& getContent() const {
 		return m_data.content();
+	}
+
+	uint32_t getSize() const {
+		return m_size;
 	}
 
 	// DeSerialize and shorten the given string
