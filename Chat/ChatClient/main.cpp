@@ -20,7 +20,7 @@ int main() {
 			std::cout << "\033[F\r" << std::string(content.size() + 1, ' ') << "\r";
 			if (!client.send(content))
 				std::cout << "Too long message ... skip it\n";
-			// Read messages from the server
+			// Read messages from the server & Print them
 			std::vector<ChatMessage> messages = client.read();
 			for (auto& msg : messages)
 				std::cout << msg.getName() << ": " << msg.getContent() << "\n";
