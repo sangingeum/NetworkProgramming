@@ -19,6 +19,7 @@ private:
 public:
 	FileTransferServer(asio::io_service& service, unsigned port);
 	void start(std::string_view fileName);
+private:
 	void acceptClient(tcp::acceptor& acceptor, std::string_view fileName);
 	void handleClient(std::shared_ptr<tcp::socket> socket, std::string_view fileName);
 	void writeHandler(std::shared_ptr<tcp::socket> socket, std::shared_ptr<std::ifstream> file, std::shared_ptr<std::array<char, 1024>> data);
