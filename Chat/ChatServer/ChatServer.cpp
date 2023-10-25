@@ -74,7 +74,7 @@ void ChatServer::readHandler(std::shared_ptr<tcp::socket> socket, std::string da
 void ChatServer::updateClient(ChatMessage msg) {
 	auto serialization = msg.serialize();
 	for (auto& socket : m_clients) {
-		asio::async_write(*socket, asio::buffer(serialization.data(), serialization.size()), [this, socket](const asio::error_code& code, size_t bytesRead) {
+		asio::async_write(*socket, asio::buffer(serialization.data(), serialization.size()), [this, socket](const asio::error_code& code, size_t bytesTransferred) {
 			if (code) {
 				removeClient(socket);
 			}
