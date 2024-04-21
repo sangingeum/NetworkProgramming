@@ -16,7 +16,7 @@ int main() {
 		client.start();
 	}
 	else
-		std::cout << "Error\n";
+		std::cout << "Cannot connect to the server.\n";
 
 	return 0;
 }

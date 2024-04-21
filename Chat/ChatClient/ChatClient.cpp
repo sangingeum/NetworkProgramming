@@ -39,6 +39,7 @@ bool ChatClient::connect(std::string_view address, std::string_view port) {
 	m_socket.connect(*it, code);
 	if (code)
 		return false;
+	m_stopReading.store(false);
 	return true;
 }
 
