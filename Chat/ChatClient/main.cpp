@@ -12,19 +12,8 @@ int main() {
 	client.setName(content);
 	if (client.connect("127.0.0.1", "13579")) {
 		std::cout << "Connected to the server\n";
-		while (true) {
-			// Read user input
-			std::string content;
-			std::getline(std::cin, content, '\n');
-			// Clear the previous line
-			std::cout << "\033[F\r" << std::string(content.size() + 1, ' ') << "\r";
-			if (!client.send(content))
-				std::cout << "Too long message ... skip it\n";
-			// Read messages from the server & Print them
-			std::vector<ChatMessage> messages = client.read();
-			for (auto& msg : messages)
-				std::cout << msg.getName() << ": " << msg.getContent() << "\n";
-		}
+		// Read messages from the server & Print them
+		client.start();
 	}
 	else
 		std::cout << "Error\n";
