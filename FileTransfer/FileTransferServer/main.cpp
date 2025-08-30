@@ -7,7 +7,8 @@ int main() {
 		// that connect to it using the Asio library.
 		asio::io_context context;
 		FileTransferServer server{ context , 13579 };
-		server.start("server.txt");
+		server.start();
+		context.run();
 	}
 	catch (std::exception& e) {
 		std::cerr << "Error: " << e.what() << "\n";
