@@ -4,11 +4,17 @@ Network program examples written in C++ using the Asio library
 ## Requirements
 You need the following to build this project.
 
-    Visual Studio
+    MSBuild
     C++20
     Asio library
-    Protocol Buffer
+    Protocol Buffer (protoc should be in your PATH)
 
+If you have ```vcpkg``` installed, I recommend installing Asio and Protobuf using the following command:
+```
+vcpkg install protobuf protobuf:x64-windows asio
+```
+
+[Here](https://learn.microsoft.com/en-us/vcpkg/get_started/get-started-msbuild?pivots=shell-powershell)   is how to install ```vcpkg```   
 Refer to [this page](https://think-async.com/Asio/) if you want to learn more about the ```Asio library```.    
 See [this page](https://github.com/protocolbuffers) for more details about ```Protocol Buffers```.
 
@@ -17,5 +23,15 @@ See [this page](https://github.com/protocolbuffers) for more details about ```Pr
 1. FileTransfer client and server
 2. Chat client and server
 
+## How to build
 
+### 1. Data project   
+Data project should be built first.   
+* Make sure ```protoc``` is in your PATH.    
+* Run ```generate_proto.bat``` to generate pb.h and pb.c files.    
+* Build the project in ```Visual Studio``` or by using this command:   
+```MSBuild . -target:Data```
 
+### 2. Other projects
+* Build them in ```Visual Studio``` or by using this command:   
+```MSBuild .```
