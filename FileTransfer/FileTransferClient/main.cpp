@@ -7,7 +7,7 @@ int main() {
 		// After it receives a file from the server, it terminates.
 		asio::io_context service;
 		FileTransferClient client{ service };
-		client.asyncGetFile("client.txt", "127.0.0.1", "13579");
+		client.connect("127.0.0.1", "13579");
 		service.run();
 	}
 	catch (std::exception& e) {
