@@ -5,7 +5,7 @@ int main() {
 	try {
 		// This asynchronous file transfer client tries to connect to the endpoint ("127.0.0.1", "13579").
 		// After it receives a file from the server, it terminates.
-		asio::io_service service;
+		asio::io_context service;
 		FileTransferClient client{ service };
 		client.asyncGetFile("client.txt", "127.0.0.1", "13579");
 		service.run();

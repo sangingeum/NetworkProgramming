@@ -1,8 +1,8 @@
 #include "FileTransferClient.hpp"
 
 
-FileTransferClient::FileTransferClient(asio::io_service& service)
-	: m_service(service), m_socket(service), m_resolver(service), m_curPath(std::filesystem::current_path())
+FileTransferClient::FileTransferClient(asio::io_context& service)
+	: m_socket(service), m_resolver(service), m_curPath(std::filesystem::current_path())
 {}
 
 void FileTransferClient::asyncGetFile(std::string_view fileName, std::string_view host, std::string_view port) {

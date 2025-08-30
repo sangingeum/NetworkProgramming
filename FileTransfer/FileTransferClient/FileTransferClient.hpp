@@ -13,14 +13,13 @@ using namespace asio::ip;
 class FileTransferClient
 {
 private:
-	asio::io_service& m_service;
 	tcp::socket m_socket;
 	tcp::resolver m_resolver;
 	std::ofstream m_outFile;
 	std::array<char, 1024> m_data{};
 	std::filesystem::path m_curPath;
 public:
-	FileTransferClient(asio::io_service& service);
+	FileTransferClient(asio::io_context& service);
 	void asyncGetFile(std::string_view fileName, std::string_view host, std::string_view port);
 private:
 	void readHandler(const asio::error_code& code, size_t bytesTransferred);
