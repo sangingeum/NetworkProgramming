@@ -1,17 +1,17 @@
 #include "FileTransferServer.hpp"
-FileTransferServer::FileTransferServer(asio::io_service& service, unsigned port)
-	:m_service(service), m_endpoint(tcp::v4(), port),
+FileTransferServer::FileTransferServer(asio::io_context& context, unsigned port)
+	: m_context(context), m_endpoint(tcp::v4(), port),
 	m_curPath(std::filesystem::current_path())
 {}
 
 void FileTransferServer::start(std::string_view fileName) {
-	tcp::acceptor acceptor{ m_service, m_endpoint };
+	tcp::acceptor acceptor{ m_context, m_endpoint };
 	acceptClient(acceptor, fileName);
-	m_service.run();
+	m_context.run();
 }
 
 void FileTransferServer::acceptClient(tcp::acceptor& acceptor, std::string_view fileName) {
-	auto socket = std::make_shared<tcp::socket>(m_service);
+	auto socket = std::make_shared<tcp::socket>(m_context);
 	acceptor.async_accept(*socket, [this, &acceptor, socket, fileName](const asio::error_code& code) {
 		if (!code) {
 			handleClient(socket, fileName);

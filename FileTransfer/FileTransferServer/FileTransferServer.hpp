@@ -13,11 +13,11 @@ using namespace asio::ip;
 class FileTransferServer
 {
 private:
-	asio::io_service& m_service;
+	asio::io_context& m_context;
 	tcp::endpoint m_endpoint;
 	std::filesystem::path m_curPath;
 public:
-	FileTransferServer(asio::io_service& service, unsigned port);
+	FileTransferServer(asio::io_context& service, unsigned port);
 	void start(std::string_view fileName);
 private:
 	void acceptClient(tcp::acceptor& acceptor, std::string_view fileName);
