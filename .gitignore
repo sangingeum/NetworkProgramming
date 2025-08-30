@@ -368,3 +368,6 @@ generated/*
 # Data project files
 Data/*.idb
 Data/*.lib
+
+# VS Code files
+.vscode/*
