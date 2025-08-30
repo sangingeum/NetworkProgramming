@@ -1,0 +1,1 @@
+protoc -I ./idl --cpp_out=./generated ./idl/*.proto
