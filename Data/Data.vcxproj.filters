@@ -21,12 +21,18 @@
     <ClInclude Include="..\generated\Chat.pb.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\generated\FileTransfer.pb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ChatMessage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\generated\Chat.pb.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\generated\FileTransfer.pb.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

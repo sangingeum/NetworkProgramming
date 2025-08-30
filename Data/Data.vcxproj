@@ -163,10 +163,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\generated\Chat.pb.h" />
+    <ClInclude Include="..\generated\FileTransfer.pb.h" />
     <ClInclude Include="ChatMessage.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\generated\Chat.pb.cc" />
+    <ClCompile Include="..\generated\FileTransfer.pb.cc" />
     <ClCompile Include="ChatMessage.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

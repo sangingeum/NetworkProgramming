@@ -1,0 +1,71 @@
+syntax="proto3";
+package file_transfer;
+
+message Message {
+    oneof content {
+        FileListRequest file_list_request = 1;
+        FileTranferRequest file_transfer_request = 2;
+        ClientStatus status = 3;
+        FileList file_list = 4;
+        FileInfo file_info = 5;
+        FileChunk file_chunk = 6;
+        FileTransferComplete file_transfer_complete = 7;
+        Error error = 8;
+    }
+}
+
+// client to server
+
+message FileListRequest {}
+message FileTranferRequest {
+    string name = 1;
+}
+message ClientStatus {
+    bool success = 1;
+}
+
+// server to client
+
+message FileList {
+    message File {
+        string name = 1;
+        int64 size = 2;
+    }
+    repeated File files = 1;
+}
+
+message FileInfo {
+    string name = 1;
+    int64 size = 2;
+}
+message FileChunk {
+    bytes data = 1;
+}
+message FileTransferComplete {}
+
+// common
+
+message Error {
+    enum Code {
+        NOT_FOUND = 0;
+        INTERNAL = 1;        
+    }
+}
+
+
+
+/*
+File transfer sequence:
+1. client -> server: FileListRequest
+2. client -> server: FileTranferRequest
+3. server -> client: FileInfo
+4. server -> client: FileChunk* (repeated)
+5. client -> sever: ClientStatus
+6. server -> client: FileTransferComplete
+
+if an error occurs:
+1. server -> client: Error
+client resets state and can start over
+1. client -> server: Error
+server resets state and can start over
+*/
