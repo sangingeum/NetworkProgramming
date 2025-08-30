@@ -20,12 +20,12 @@ public:
 		m_data.set_name(name.data());
 		m_data.set_content(content.data());
 		std::string temp = m_data.SerializeAsString();
-		uint32_t length = temp.size() + headerSize;
+		uint32_t length = static_cast<uint32_t>(temp.size()) + headerSize;
 		char header[4]{ 0, 0, 0, 0 };
 		std::memcpy(header, &length, headerSize);
 		std::string headerString(header, header + headerSize);
 		m_serialization = headerString + temp;
-		m_size = m_serialization.size();
+		m_size = static_cast<uint32_t>(m_serialization.size());
 	}
 
 	std::string serialize() const {
