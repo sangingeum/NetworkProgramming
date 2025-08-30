@@ -14,7 +14,7 @@ private:
 	tcp::socket m_socket;
 	tcp::resolver m_resolver;
 	std::ofstream m_outFile;
-	std::array<char, 1024> m_data{};
+	std::array<char, 1024> m_readBuffer{};
 	std::filesystem::path m_curPath;
 public:
 	FileTransferClient(asio::io_context& service);

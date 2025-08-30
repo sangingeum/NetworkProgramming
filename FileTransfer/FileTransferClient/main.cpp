@@ -9,6 +9,7 @@ int main() {
 		FileTransferClient client{ service };
 		client.connect("127.0.0.1", "13579");
 		service.run();
+		std::cout << "run finished\n";
 	}
 	catch (std::exception& e) {
 		std::cerr << "Error: " << e.what() << "\n";
