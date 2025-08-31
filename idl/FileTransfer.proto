@@ -4,8 +4,8 @@ package file_transfer;
 message Message {
     oneof content {
         FileListRequest file_list_request = 1;
-        FileTranferRequest file_transfer_request = 2;
-        ClientStatus status = 3;
+        FileTransferRequest file_transfer_request = 2;
+        ClientStatus client_status = 3;
         FileList file_list = 4;
         FileInfo file_info = 5;
         FileChunk file_chunk = 6;
@@ -17,7 +17,7 @@ message Message {
 // client to server
 
 message FileListRequest {}
-message FileTranferRequest {
+message FileTransferRequest {
     string name = 1;
 }
 message ClientStatus {
@@ -50,6 +50,7 @@ message Error {
         NOT_FOUND = 0;
         INTERNAL = 1;        
     }
+    Code code = 1;
 }
 
 

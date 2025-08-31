@@ -42,7 +42,7 @@ void FileTransferClient::requestFileList(){
 
 void FileTransferClient::sendStatus(bool success) {
 	file_transfer::Message message;
-	message.mutable_status()->set_success(success);
+	message.mutable_client_status()->set_success(success);
 	std::string data = message.SerializeAsString();
 	m_socket.async_write_some(asio::buffer(data), [](const asio::error_code& code, size_t bytesTransferred){
 		if(!code){
