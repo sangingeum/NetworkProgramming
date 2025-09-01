@@ -11,9 +11,10 @@ using namespace asio::ip;
 class FileTransferClient
 {
 private:
+	constexpr static size_t bufferSize = 1024*16;
+	using ReadBuffer = std::array<char, bufferSize>;
 	asio::io_context& m_context;
 	std::ofstream m_outFile;
-	std::array<char, 1024> m_readBuffer{};
 	std::filesystem::path m_curPath;
 public:
 	FileTransferClient(asio::io_context& service);
@@ -22,8 +23,9 @@ public:
 	void sendFileListRequest(std::shared_ptr<tcp::socket> socket);
 	void sendStatus(std::shared_ptr<tcp::socket> socket, bool success);
 private:
-	void readHandler(std::shared_ptr<tcp::socket> socket, const asio::error_code& code, size_t bytesTransferred);
-	void connectHandler(std::shared_ptr<tcp::socket> socket, const asio::error_code& code);
+	void readHandler(std::shared_ptr<tcp::socket> socket, std::shared_ptr<ReadBuffer> buffer, const asio::error_code& code, size_t bytesTransferred);
+	void connectionSuccessHandler(std::shared_ptr<tcp::socket> socket, const asio::error_code& code);
+	void connectionFailureHandler(std::shared_ptr<tcp::socket> socket, tcp::resolver::iterator it, const asio::error_code& code);
 	void resolverHandler(const asio::error_code& code, tcp::resolver::iterator it);
 	// Message handlers
 	void fileListHandler(const file_transfer::FileList& list);

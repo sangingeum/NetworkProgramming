@@ -51,34 +51,12 @@ void FileTransferClient::sendStatus(std::shared_ptr<tcp::socket> socket, bool su
 	);
 }
 
-void FileTransferClient::connectHandler(std::shared_ptr<tcp::socket> socket, const asio::error_code& code) {
-	if (!code) {
-		std::cout << "Succecssfully connected to the server.\n";
-		sendFileListRequest(socket);
-		socket->async_read_some(asio::buffer(m_readBuffer, m_readBuffer.size()),
-		std::bind(&FileTransferClient::readHandler, this, socket, std::placeholders::_1, std::placeholders::_2));
-	}
-	else {
-		std::cerr << "Failed to connect to the server: " << code.message() << '\n';
-	}
-}
-
-void FileTransferClient::resolverHandler(const asio::error_code& code, tcp::resolver::iterator it) {
-	if (!code) {
-		std::cout << "Succecssfully resolved the server address.\n";
-		auto socket = std::make_shared<tcp::socket>(m_context);
-		socket->async_connect(*it, [this, socket](const asio::error_code& code) {
-			connectHandler(socket, code);
-		});
-	}
-}
-
-void FileTransferClient::readHandler(std::shared_ptr<tcp::socket> socket, const asio::error_code& code, size_t bytesTransferred) {
+void FileTransferClient::readHandler(std::shared_ptr<tcp::socket> socket, std::shared_ptr<ReadBuffer> buffer, const asio::error_code& code, size_t bytesTransferred) {
 	std::cout << "In readHandler\n";
 	if(!code){
 		std::cout << "Received " << bytesTransferred << " bytes from the server.\n";
 		file_transfer::Message message;
-		message.ParseFromArray(m_readBuffer.data(), static_cast<int>(bytesTransferred));
+		message.ParseFromArray(buffer->data(), static_cast<int>(bytesTransferred));
 		switch(message.content_case()){
 			case file_transfer::Message::kFileList:
 				std::cout << "Received file list message from the server.\n";
@@ -100,8 +78,43 @@ void FileTransferClient::readHandler(std::shared_ptr<tcp::socket> socket, const 
 				std::cout << "unknown message received from the server.\n";
 				break;
 		}
-		socket->async_read_some(asio::buffer(m_readBuffer, m_readBuffer.size()),
-		std::bind(&FileTransferClient::readHandler, this, socket, std::placeholders::_1, std::placeholders::_2));
+		socket->async_read_some(asio::buffer(buffer->data(), buffer->size()),
+		std::bind(&FileTransferClient::readHandler, this, socket, buffer, std::placeholders::_1, std::placeholders::_2));
+	}
+}
+
+void FileTransferClient::connectionSuccessHandler(std::shared_ptr<tcp::socket> socket, const asio::error_code& code) {
+	auto buffer = std::make_shared<ReadBuffer>();
+	std::cout << "Succecssfully connected to the server.\n";
+	sendFileListRequest(socket);
+	socket->async_read_some(asio::buffer(buffer->data(), buffer->size()),
+	std::bind(&FileTransferClient::readHandler, this, socket, buffer, std::placeholders::_1, std::placeholders::_2));
+}
+
+void FileTransferClient::connectionFailureHandler(std::shared_ptr<tcp::socket> socket, tcp::resolver::iterator it, const asio::error_code& code){
+	std::cerr << "Failed to connect to the server: " << code.message() << '\n';
+	socket->async_connect(*it, [this, it, socket](const asio::error_code& code) {
+		if(!code){
+			connectionSuccessHandler(socket, code);
+		}
+		else{
+			connectionFailureHandler(socket, it, code);
+		}
+	});
+}
+
+void FileTransferClient::resolverHandler(const asio::error_code& code, tcp::resolver::iterator it) {
+	if (!code) {
+		std::cout << "Succecssfully resolved the server address.\n";
+		auto socket = std::make_shared<tcp::socket>(m_context);
+		socket->async_connect(*it, [this, it, socket](const asio::error_code& code) {
+			if(!code){
+				connectionSuccessHandler(socket, code);
+			}
+			else{
+				connectionFailureHandler(socket, it, code);
+			}
+		});
 	}
 }
 
