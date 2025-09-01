@@ -32,6 +32,6 @@ private:
 	void fileInfoHandler(const file_transfer::FileInfo& info);
 	void fileChunkHandler(const file_transfer::FileChunk& chunk);
 	void fileTransferCompleteHandler(const file_transfer::FileTransferComplete& complete);
-	void erorrHandler(const file_transfer::Error& error);
+	void errorHandler(const file_transfer::Error& error);
 };
 

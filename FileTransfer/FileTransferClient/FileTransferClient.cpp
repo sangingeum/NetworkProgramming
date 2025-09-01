@@ -72,7 +72,7 @@ void FileTransferClient::readHandler(std::shared_ptr<tcp::socket> socket, std::s
 				fileTransferCompleteHandler(message.file_transfer_complete());
 				break;
 			case file_transfer::Message::kError:
-				erorrHandler(message.error());
+				errorHandler(message.error());
 				break;
 			default:
 				std::cout << "unknown message received from the server.\n";
@@ -126,14 +126,17 @@ void FileTransferClient::fileListHandler(const file_transfer::FileList& list) {
 }
 
 void FileTransferClient::fileInfoHandler(const file_transfer::FileInfo& info){
-
+	// open file
+	std::cout << "Start downloading file: " << info.name() << " (" << info.size() << " bytes)\n";
+	// make a random name
 }
 void FileTransferClient::fileChunkHandler(const file_transfer::FileChunk& chunk){
+	// write to file
 
 }
 void FileTransferClient::fileTransferCompleteHandler(const file_transfer::FileTransferComplete& complete){
-
+	// close file
 }
-void FileTransferClient::erorrHandler(const file_transfer::Error& error){
-	
+void FileTransferClient::errorHandler(const file_transfer::Error& error){
+	// stop reading and close file
 }
