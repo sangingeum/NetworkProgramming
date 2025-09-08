@@ -26,9 +26,10 @@ private:
 	void handleRead(std::shared_ptr<tcp::socket> socket, std::shared_ptr<std::array<std::byte, 1024>> data, const asio::error_code& code, size_t bytesTransferred);
 	// Message handlers
 	void handleFileListRequest(std::shared_ptr<tcp::socket> socket);
-	void handlerFileTransferRequest(std::shared_ptr<tcp::socket> socket, const file_transfer::FileTransferRequest& request);
-	void handlerClientStatus(std::shared_ptr<tcp::socket> socket, const file_transfer::ClientStatus& status);
-	void handlerError(std::shared_ptr<tcp::socket> socket, const file_transfer::Error& error);
+	void handleFileTransferRequest(std::shared_ptr<tcp::socket> socket, const file_transfer::FileTransferRequest& request);
+	void handleClientReady(std::shared_ptr<tcp::socket> socket, const file_transfer::ClientReady& ready);
+	void handleClientAcknowledgement(std::shared_ptr<tcp::socket> socket, const file_transfer::ClientAcknowledgement& ack);
+	void handleError(std::shared_ptr<tcp::socket> socket, const file_transfer::Error& error);
 	// Send
 	void sendFile(std::shared_ptr<tcp::socket> socket, std::filesystem::path filePath);
 	void sendFileHelper(std::shared_ptr<tcp::socket> socket, std::shared_ptr<std::ifstream> fileStream, uint32_t chunkId);

@@ -2,7 +2,7 @@
 #include <exception>
 #include <format>
 #include <functional>
-
+#include <random>
 
 FileTransferClient::FileTransferClient(asio::io_context& context)
 	: m_context(context), m_curPath(std::filesystem::current_path())
@@ -40,15 +40,22 @@ void FileTransferClient::sendFileListRequest(std::shared_ptr<tcp::socket> socket
 	);
 }
 
-void FileTransferClient::sendStatus(std::shared_ptr<tcp::socket> socket, bool success) {
+void FileTransferClient::sendAcknowledgement(std::shared_ptr<tcp::socket> socket, bool success) {
 	file_transfer::Message message;
-	message.mutable_client_status()->set_success(success);
+	message.mutable_client_acknowledgement()->set_success(success);
 	std::string data = message.SerializeAsString();
 	asio::async_write(*socket, asio::buffer(data), [](const asio::error_code& code, size_t bytesTransferred){
 		if(!code){
 			std::cout << "Succecssfully sent client status to the server.\n";
 		}}
 	);
+}
+
+void FileTransferClient::sendReady(std::shared_ptr<tcp::socket> socket)
+{
+	file_transfer::Message message;
+	message.mutable_client_ready();
+	// TODO
 }
 
 void FileTransferClient::handleRead(std::shared_ptr<tcp::socket> socket, std::shared_ptr<ReadBuffer> buffer, const asio::error_code& code, size_t bytesTransferred) {
@@ -128,9 +135,12 @@ void FileTransferClient::handleFileList(const file_transfer::FileList& list) {
 }
 
 void FileTransferClient::handleFileInfo(const file_transfer::FileInfo& info){
-	// open file
 	std::cout << "Start downloading file: " << info.name() << " (" << info.size() << " bytes)\n";
 	// make a random name
+	std::string filename = generateRandomUniqueFilename();
+	// open file
+	// TODO
+	
 }
 void FileTransferClient::handleFileChunk(const file_transfer::FileChunk& chunk){
 	// write to file
@@ -143,4 +153,24 @@ void FileTransferClient::handleFileTransferCompletion(const file_transfer::FileT
 }
 void FileTransferClient::handleError(const file_transfer::Error& error){
 	// stop reading and close file
+}
+
+// File operations
+std::string FileTransferClient::generateRandomUniqueFilename(){
+	static std::string_view textPool =
+		"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+	static std::mt19937 rng{ std::random_device{}() };
+	static std::uniform_int_distribution<std::size_t> dist(0, textPool.size() - 1);
+
+	std::string filename;
+	filename.reserve(13); // Reserve space for 13 characters
+	do {
+		filename.clear();
+		for (size_t i = 0; i < 12; ++i) { // Generate a 12-character random string
+			filename += textPool[dist(rng)];
+		}
+		filename += ".dat"; // Add a file extension
+	} while (std::filesystem::exists(m_curPath / filename)); // Ensure the filename is unique
+
+	return filename;
 }

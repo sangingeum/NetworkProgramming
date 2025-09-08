@@ -5,23 +5,29 @@ message Message {
     oneof content {
         FileListRequest file_list_request = 1;
         FileTransferRequest file_transfer_request = 2;
-        ClientStatus client_status = 3;
-        FileList file_list = 4;
-        FileInfo file_info = 5;
-        FileChunk file_chunk = 6;
-        FileTransferComplete file_transfer_complete = 7;
-        Error error = 8;
+        ClientReady client_ready = 3;
+        ClientAcknowledgement client_acknowledgement = 4;
+        FileList file_list = 5;
+        FileInfo file_info = 6;
+        FileChunk file_chunk = 7;
+        FileTransferComplete file_transfer_complete = 8;
+        Error error = 9;
     }
 }
 
 // client to server
 
-message FileListRequest {}
+message FileListRequest {
+}
 message FileTransferRequest {
     string name = 1;
 }
-message ClientStatus {
-    bool success = 1;
+message ClientAcknowledgement {
+    uint32 id = 1; // identifier for the file transfer session
+    bool success = 2;
+}
+message ClientReady {
+    uint32 id = 1; // identifier for the file transfer session
 }
 
 // server to client
@@ -35,13 +41,18 @@ message FileList {
 }
 
 message FileInfo {
-    string name = 1;
-    int64 size = 2;
+    uint32 id = 1; // identifier for the file transfer session
+    string name = 2;
+    int64 size = 3;
 }
 message FileChunk {
-    bytes data = 1;
+    uint32 id = 1; // identifier for the file transfer session
+    bytes data = 2;
+    bool last_chunk = 3;
 }
-message FileTransferComplete {}
+message FileTransferComplete {
+    uint32 id = 1; // identifier for the file transfer session
+}
 
 // common
 
@@ -50,7 +61,9 @@ message Error {
         NOT_FOUND = 0;
         INTERNAL = 1;        
     }
-    Code code = 1;
+    uint32 id = 1; // identifier for the file transfer session
+    Code code = 2;
+    string message = 3;
 }
 
 
@@ -58,15 +71,17 @@ message Error {
 /*
 File transfer sequence:
 1. client -> server: FileListRequest
-2. client -> server: FileTranferRequest
-3. server -> client: FileInfo
-4. server -> client: FileChunk* (repeated)
-5. client -> sever: ClientStatus
-6. server -> client: FileTransferComplete
+2. server -> client: FileList
+3. client -> server: FileTransferRequest
+4. server -> client: FileInfo
+5. client -> server: ClientReady
+6. server -> client: FileChunk* (repeated)
+7. client -> server: ClientAcknowledgement* (repeated)
+8. server -> client: FileTransferComplete
 
 if an error occurs:
 1. server -> client: Error
-client resets state and can start over
+server and client reset the session and can start over
 1. client -> server: Error
-server resets state and can start over
+server and client reset the session and can start over
 */
