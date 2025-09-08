@@ -22,13 +22,12 @@ void FileTransferServer::acceptClient(std::shared_ptr<tcp::acceptor> acceptor) {
 }
 
 void FileTransferServer::handleClient(std::shared_ptr<tcp::socket> socket) {
-	std::cout << "Handling client...\n";
 	std::shared_ptr<std::array<std::byte, 1024>> data = std::make_shared<std::array<std::byte, 1024>>();
-	socket->async_read_some(asio::buffer(data->data(), data->size()), std::bind(&FileTransferServer::readHandler, this, socket, data, std::placeholders::_1, std::placeholders::_2));
+	socket->async_read_some(asio::buffer(data->data(), data->size()), std::bind(&FileTransferServer::handleRead, this, socket, data, std::placeholders::_1, std::placeholders::_2));
 }
 
-void FileTransferServer::readHandler(std::shared_ptr<tcp::socket> socket, std::shared_ptr<std::array<std::byte, 1024>> data, const asio::error_code& code, size_t bytesTransferred){
-	std::cout << "Handling read...\n";
+void FileTransferServer::handleRead(std::shared_ptr<tcp::socket> socket, std::shared_ptr<std::array<std::byte, 1024>> data, const asio::error_code& code, size_t bytesTransferred){
+	
 	if (!code) {
 		std::cout << "Received data from the client.\n";
 		std::cout << "bytesTransferred: " << bytesTransferred << '\n';	
@@ -37,34 +36,37 @@ void FileTransferServer::readHandler(std::shared_ptr<tcp::socket> socket, std::s
 		switch (message.content_case()) {
 		case file_transfer::Message::kFileListRequest:
 		{
-			fileListRequestHandler(socket);
+			handleFileListRequest(socket);
 			break;
 		}
 		case file_transfer::Message::kFileTransferRequest:
 		{
-			fileTransferRequestHandler(socket, message.file_transfer_request());
+			handlerFileTransferRequest(socket, message.file_transfer_request());
 			break;
 		}
 		case file_transfer::Message::kClientStatus:
 		{
-			statusHandler(socket, message.client_status());
+			handlerClientStatus(socket, message.client_status());
 			break;
 		}
 		case file_transfer::Message::kError:
 		{
-			ErrorHandler(socket, message.error());
+			handlerError(socket, message.error());
 			break;
 		}
 		default:
 			std::cout << "Unknown message type received from client.\n";
 			break;
 		}
-		socket->async_read_some(asio::buffer(data->data(), data->size()), std::bind(&FileTransferServer::readHandler, this, socket, data, std::placeholders::_1, std::placeholders::_2));
+		socket->async_read_some(asio::buffer(data->data(), data->size()), std::bind(&FileTransferServer::handleRead, this, socket, data, std::placeholders::_1, std::placeholders::_2));
+	}
+	else{
+		std::cout << "Error on receive: " << code.message() << '\n';
 	}
 }
 
 
-void FileTransferServer::fileListRequestHandler(std::shared_ptr<tcp::socket> socket){
+void FileTransferServer::handleFileListRequest(std::shared_ptr<tcp::socket> socket){
 	file_transfer::Message message;
 	file_transfer::FileList* fileList = message.mutable_file_list();
 	for (const auto& entry : std::filesystem::directory_iterator(m_curPath)) {
@@ -81,20 +83,20 @@ void FileTransferServer::fileListRequestHandler(std::shared_ptr<tcp::socket> soc
 		}
 		});
 }
-void FileTransferServer::fileTransferRequestHandler(std::shared_ptr<tcp::socket> socket, const file_transfer::FileTransferRequest& request){
+void FileTransferServer::handlerFileTransferRequest(std::shared_ptr<tcp::socket> socket, const file_transfer::FileTransferRequest& request){
 	std::string fileName = request.name();
 	std::filesystem::path filePath = m_curPath / fileName;
 	std::cout << "Getting ready to send file: " << filePath << '\n';
 	sendFile(socket, filePath);
 }
-void FileTransferServer::statusHandler(std::shared_ptr<tcp::socket> socket, const file_transfer::ClientStatus& status){
+void FileTransferServer::handlerClientStatus(std::shared_ptr<tcp::socket> socket, const file_transfer::ClientStatus& status){
 	bool success = status.success();
 	success ? std::cout << "Client reported success.\n" : std::cout << "Client reported failure.\n";
 	if(!success){
 		// TODO: RESET
 	}
 }
-void FileTransferServer::ErrorHandler(std::shared_ptr<tcp::socket> socket, const file_transfer::Error& error){
+void FileTransferServer::handlerError(std::shared_ptr<tcp::socket> socket, const file_transfer::Error& error){
 	switch(error.code()){
 		case file_transfer::Error_Code::Error_Code_NOT_FOUND:{
 			std::cout << "Client reported error: NOT_FOUND\n";

@@ -23,15 +23,15 @@ public:
 	void sendFileListRequest(std::shared_ptr<tcp::socket> socket);
 	void sendStatus(std::shared_ptr<tcp::socket> socket, bool success);
 private:
-	void readHandler(std::shared_ptr<tcp::socket> socket, std::shared_ptr<ReadBuffer> buffer, const asio::error_code& code, size_t bytesTransferred);
-	void connectionSuccessHandler(std::shared_ptr<tcp::socket> socket, const asio::error_code& code);
-	void connectionFailureHandler(std::shared_ptr<tcp::socket> socket, tcp::resolver::iterator it, const asio::error_code& code);
-	void resolverHandler(const asio::error_code& code, tcp::resolver::iterator it);
+	void handleRead(std::shared_ptr<tcp::socket> socket, std::shared_ptr<ReadBuffer> buffer, const asio::error_code& code, size_t bytesTransferred);
+	void handleConnectionSuccess(std::shared_ptr<tcp::socket> socket, const asio::error_code& code);
+	void handleConnectionFailure(std::shared_ptr<tcp::socket> socket, tcp::resolver::iterator it, const asio::error_code& code);
+	void handleResolve(const asio::error_code& code, tcp::resolver::iterator it);
 	// Message handlers
-	void fileListHandler(const file_transfer::FileList& list);
-	void fileInfoHandler(const file_transfer::FileInfo& info);
-	void fileChunkHandler(const file_transfer::FileChunk& chunk);
-	void fileTransferCompleteHandler(const file_transfer::FileTransferComplete& complete);
-	void errorHandler(const file_transfer::Error& error);
+	void handleFileList(const file_transfer::FileList& list);
+	void handleFileInfo(const file_transfer::FileInfo& info);
+	void handleFileChunk(const file_transfer::FileChunk& chunk);
+	void handleFileTransferCompletion(const file_transfer::FileTransferComplete& complete);
+	void handleError(const file_transfer::Error& error);
 };
 
