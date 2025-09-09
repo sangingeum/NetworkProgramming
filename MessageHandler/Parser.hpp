@@ -7,7 +7,7 @@ class Parser
 {
     private:
         std::string buffer;
-        std::array<std::function<void()>, 15> handlers;
+        std::array<std::function<void(const file_transfer::Message&)>, 15> handlers;
     public:
         Parser() = default;
         void appendData(const char* data, size_t length) {
@@ -34,7 +34,7 @@ class Parser
                 // Clear the buffer after successful parsing
                 buffer.erase(0, headerSize + messageLength);
                 // Handle the parsed message
-                handlers[message.content_case()]();
+                handlers[message.content_case()](message);
                 return true;
             }
 
@@ -49,7 +49,7 @@ class Parser
             }
         }
 
-        void setHandler(int messageType, std::function<void()> handler) {
+        void setHandler(int messageType, std::function<void(const file_transfer::Message&)> handler) {
             if (messageType >= 0 && messageType < handlers.size()) {
                 handlers[messageType] = handler;
             }
