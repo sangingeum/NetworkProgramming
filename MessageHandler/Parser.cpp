@@ -1,30 +1,30 @@
 #include "Parser.hpp"
 
 void Parser::appendData(const char* data, size_t length) {
-    buffer.append(data, length);
+    m_buffer.append(reinterpret_cast<const char*>(data), length);
 }
 
 bool Parser::tryParseMessage() {
     static const int headerSize = 4; // Assuming a 4-byte header for message length
 
-    if (buffer.size() <= headerSize) {
+    if (m_buffer.size() <= headerSize) {
         return false;
     }
 
     // Extract the message length from the header
-    int messageLength = *reinterpret_cast<const int*>(buffer.data());
+    int messageLength = *reinterpret_cast<const int*>(m_buffer.data());
 
-    if (buffer.size() < headerSize + messageLength) {
+    if (m_buffer.size() < headerSize + messageLength) {
         return false;
     }
 
     // If we reach here, we have a complete message
     file_transfer::Message message;
-    if (message.ParseFromString(buffer.substr(headerSize, messageLength))) {
-        // Clear the buffer after successful parsing
-        buffer.erase(0, headerSize + messageLength);
+    if (message.ParseFromString(m_buffer.substr(headerSize, messageLength))) {
+        // Clear the m_buffer after successful parsing
+        m_buffer.erase(0, headerSize + messageLength);
         // Handle the parsed message
-        handlers[message.content_case()](message);
+        m_handlers[message.content_case()](message);
         return true;
     }
 
@@ -40,7 +40,7 @@ void Parser::appendDataAndParse(const char* data, size_t length) {
 }
 
 void Parser::setHandler(int messageType, std::function<void(const file_transfer::Message&)> handler) {
-    if (messageType >= 0 && messageType < handlers.size()) {
-        handlers[messageType] = handler;
+    if (messageType >= 0 && messageType < m_handlers.size()) {
+        m_handlers[messageType] = handler;
     }
 }

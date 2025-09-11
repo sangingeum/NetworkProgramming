@@ -21,9 +21,15 @@
     <ClCompile Include="FileTransferServer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ServerSession.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FileTransferServer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ServerSession.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
