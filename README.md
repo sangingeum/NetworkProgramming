@@ -24,14 +24,8 @@ See [this page](https://github.com/protocolbuffers) for more details about ```Pr
 2. Chat client and server
 
 ## How to build
-
-### 1. Data project   
-Data project should be built first.   
+ 
 * Make sure ```protoc``` is in your PATH.    
 * Run ```generate_proto.bat``` to generate pb.h and pb.c files.    
 * Build the project in ```Visual Studio``` or by using this command:   
-```MSBuild . -target:Data```
-
-### 2. Other projects
-* Build them in ```Visual Studio``` or by using this command:   
 ```MSBuild .```
