@@ -10,6 +10,7 @@
 #include <string_view>
 #include <exception>
 #include <chrono>
+#include <map>
 
 using namespace asio::ip;
 
@@ -19,6 +20,8 @@ private:
     std::shared_ptr<tcp::socket> m_socket;
     Parser m_parser;
     std::filesystem::path m_curPath;
+    uint32_t m_identifierCounter;
+    std::map<uint32_t, std::shared_ptr<std::ifstream>> m_activeFileTransfers;
 public:
     ServerSession(std::shared_ptr<tcp::socket> socket);
     void start();
@@ -29,12 +32,17 @@ private:
     void handleFileListRequest(const file_transfer::FileListRequest& request);
     void handleFileTransferRequest(const file_transfer::FileTransferRequest& request);
     void handleClientReady(const file_transfer::ClientReady& ready);
-    void handleClientAcknowledgement(const file_transfer::ClientAcknowledgement& ack);
     void handleError(const file_transfer::Error& error);
+    void handleFileTransferError(const file_transfer::FileTransferError& error);
     // Send
-    void sendFile(std::filesystem::path filePath);
-    void sendFileHelper(std::shared_ptr<std::ifstream> fileStream, uint32_t chunkId);
-    void sendError(file_transfer::Error::Code code);
+    void sendFileHelper(uint32_t fileIdentifier, uint32_t chunkId);
+    void sendFile(uint32_t fileIdentifier);
+    void sendError(file_transfer::ErrorCode code);
+    void sendFileTransferError(file_transfer::ErrorCode code, uint32_t fileIdentifier, std::string_view errorMessage);
     void sendFileTransferComplete();
-    void sendFileInfo(const std::filesystem::path& filePath, std::function<void()> onSent = []() {});
+    void sendFileInfo(const std::filesystem::path& filePath, uint32_t fileIdentifier);
+    // Utilities
+    inline uint32_t getNextIdentifier(){
+        return m_identifierCounter++;
+    }
 };

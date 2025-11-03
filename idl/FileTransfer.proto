@@ -6,7 +6,7 @@ message Message {
         FileListRequest file_list_request = 1;
         FileTransferRequest file_transfer_request = 2;
         ClientReady client_ready = 3;
-        ClientAcknowledgement client_acknowledgement = 4;
+        FileTransferError file_transfer_error = 4;
         FileList file_list = 5;
         FileInfo file_info = 6;
         FileChunk file_chunk = 7;
@@ -21,10 +21,6 @@ message FileListRequest {
 }
 message FileTransferRequest {
     string name = 1;
-}
-message ClientAcknowledgement {
-    uint32 id = 1; // identifier for the file transfer session
-    bool success = 2;
 }
 message ClientReady {
     uint32 id = 1; // identifier for the file transfer session
@@ -55,33 +51,41 @@ message FileTransferComplete {
 }
 
 // common
+enum ErrorCode {
+    NOT_FOUND = 0;
+    INTERNAL = 1;        
+}
 
+// This is for general errors not specific to a file transfer session
 message Error {
-    enum Code {
-        NOT_FOUND = 0;
-        INTERNAL = 1;        
-    }
+    ErrorCode code = 1;
+    string message = 2;
+}
+
+// This is for errors specific to a file transfer session
+// It triggers a reset of that session
+message FileTransferError {
     uint32 id = 1; // identifier for the file transfer session
-    Code code = 2;
+    ErrorCode code = 2;
     string message = 3;
 }
 
 
-
 /*
-File transfer sequence:
+File listing sequence:
 1. client -> server: FileListRequest
 2. server -> client: FileList
-3. client -> server: FileTransferRequest
-4. server -> client: FileInfo
-5. client -> server: ClientReady
-6. server -> client: FileChunk* (repeated)
-7. client -> server: ClientAcknowledgement* (repeated)
-8. server -> client: FileTransferComplete
+
+File transfer sequence:
+1. client -> server: FileTransferRequest
+2. server -> client: FileInfo
+3. client -> server: ClientReady
+4. server -> client: FileChunk* (repeated)
+6. server -> client: FileTransferComplete
 
 if an error occurs:
-1. server -> client: Error
+1. server -> client: FileTransferError
 server and client reset the session and can start over
-1. client -> server: Error
+1. client -> server: FileTransferError
 server and client reset the session and can start over
 */

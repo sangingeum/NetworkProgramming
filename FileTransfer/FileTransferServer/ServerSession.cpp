@@ -1,7 +1,7 @@
 #include "ServerSession.hpp"
 
 ServerSession::ServerSession(std::shared_ptr<tcp::socket> socket)
-    : m_socket(socket), m_parser{}, m_curPath(std::filesystem::current_path()) 
+    : m_socket(socket), m_parser{}, m_curPath(std::filesystem::current_path()), m_identifierCounter(0)
 {
     m_parser.setHandler(file_transfer::Message::kFileListRequest, [this](const file_transfer::Message& msg){ {
         handleFileListRequest(msg.file_list_request());
@@ -12,11 +12,11 @@ ServerSession::ServerSession(std::shared_ptr<tcp::socket> socket)
     m_parser.setHandler(file_transfer::Message::kClientReady, [this](const file_transfer::Message& msg){ {
         handleClientReady(msg.client_ready());
     }});
-    m_parser.setHandler(file_transfer::Message::kClientAcknowledgement, [this](const file_transfer::Message& msg){ {
-        handleClientAcknowledgement(msg.client_acknowledgement());
-    }});
     m_parser.setHandler(file_transfer::Message::kError, [this](const file_transfer::Message& msg){ {
         handleError(msg.error());
+    }});
+    m_parser.setHandler(file_transfer::Message::kFileTransferError, [this](const file_transfer::Message& msg){ {
+        handleFileTransferError(msg.file_transfer_error());
     }});
 }
 
@@ -58,28 +58,37 @@ void ServerSession::handleFileListRequest(const file_transfer::FileListRequest& 
 void ServerSession::handleFileTransferRequest(const file_transfer::FileTransferRequest& request){
 	std::string fileName = request.name();
 	std::filesystem::path filePath = m_curPath / fileName;
+	// Check if file exists
+	if (!std::filesystem::exists(filePath) || !std::filesystem::is_regular_file(filePath)) {
+		std::cout << "Requested file does not exist: " << filePath << '\n';
+		sendError(file_transfer::ErrorCode::NOT_FOUND);
+		return;
+	}
 	std::cout << "Getting ready to send file: " << filePath << '\n';
-	sendFile(filePath);
+	// open file and check
+	auto fileStream = std::make_shared<std::ifstream>(filePath, std::ios::binary);
+	if (!(fileStream->is_open() && fileStream->good())) {
+		std::cout << "Failed to open file: " << filePath << '\n';
+		sendError(file_transfer::ErrorCode::NOT_FOUND);
+		return;
+	}
+	uint32_t currentId = getNextIdentifier();
+	sendFileInfo(filePath, currentId);
+	// Now wait for ClientReady message before sending the file
+	m_activeFileTransfers[currentId] = std::move(fileStream);
 }
 void ServerSession::handleClientReady(const file_transfer::ClientReady& ready)
 {
-	// TODO: RESET
+	sendFile(ready.id());
+}
 
-}
-void ServerSession::handleClientAcknowledgement(const file_transfer::ClientAcknowledgement& ack) {
-	bool success = ack.success();
-	success ? std::cout << "Client reported success.\n" : std::cout << "Client reported failure.\n";
-	if(!success){
-		// TODO: RESET
-	}
-}
 void ServerSession::handleError(const file_transfer::Error& error){
 	switch(error.code()){
-		case file_transfer::Error_Code::Error_Code_NOT_FOUND:{
+		case file_transfer::ErrorCode::NOT_FOUND:{
 			std::cout << "Client reported error: NOT_FOUND\n";
 			break;
 		}
-		case file_transfer::Error_Code::Error_Code_INTERNAL:{
+		case file_transfer::ErrorCode::INTERNAL:{
 			std::cout << "Client reported error: INTERNAL\n";
 			break;	
 		}
@@ -88,54 +97,85 @@ void ServerSession::handleError(const file_transfer::Error& error){
 			break;
 		}
 	}
-	// TODO: RESET
 }
 
+void ServerSession::handleFileTransferError(const file_transfer::FileTransferError& error){
+	uint32_t fileId = error.id();
+	auto it = m_activeFileTransfers.find(fileId);
+	if (it != m_activeFileTransfers.end()) {
+		std::cout << "Client reported file transfer error for ID " << fileId << ": " << error.message() << '\n';
+		// Clean up the active file transfer
+		m_activeFileTransfers.erase(it);
+	} else {
+		std::cout << "Received file transfer error for unknown ID " << fileId << '\n';
+	}
+}
 
 // Send
-void ServerSession::sendFile(std::filesystem::path filePath){
-	auto fileStream = std::make_shared<std::ifstream>(filePath, std::ios::binary);
-	if(!(fileStream->is_open() && fileStream->good())){
-		std::cout << "Failed to open file: " << filePath << '\n';
-		sendError(file_transfer::Error::NOT_FOUND);
+
+void ServerSession::sendFileHelper(uint32_t fileIdentifier, uint32_t chunkId){
+	constexpr static size_t maxChunkSize = 1024 * 16; // 16KB
+	auto fileStream = m_activeFileTransfers[fileIdentifier];
+
+	if(!fileStream){
+		// This could happend if a file transfer error was sent and the state reset
+		std::cout << "No active file transfer found for ID: " << fileIdentifier << '\n';
+		sendFileTransferError(file_transfer::ErrorCode::INTERNAL, fileIdentifier, "No active file transfer found.");
 		return;
 	}
-	fileStream->seekg(0, std::ios::beg);
-	sendFileInfo(filePath, [this, fileStream](){ sendFileHelper(fileStream, 0);});
-}
-void ServerSession::sendFileHelper(std::shared_ptr<std::ifstream> fileStream, uint32_t chunkId){
-	constexpr static size_t maxChunkSize = 1024 * 16; // 16KB
 	if(!(fileStream->is_open() && fileStream->good())){
 		std::cout << "File status not good" << '\n';
-		sendError(file_transfer::Error::INTERNAL);
+		sendFileTransferError(file_transfer::ErrorCode::INTERNAL, fileIdentifier, "File stream is not in a good state.");
 		return;
+	}
+	if(chunkId == 0){
+		std::cout << "Starting to send file..." << '\n';
+		fileStream->seekg(0, std::ios::beg);
 	}
 	if(fileStream->eof()){
 		std::cout << "Finished sending file." << '\n';
 		sendFileTransferComplete();
 		return;
 	}
-	if(chunkId == 0){
-		std::cout << "Starting to send file..." << '\n';
-	}
 	auto buffer = std::make_shared<std::vector<std::byte>>(maxChunkSize);
 	fileStream->read(reinterpret_cast<char*>(buffer->data()), maxChunkSize);
 	std::streamsize bytesRead = fileStream->gcount();
-	file_transfer::Message message;
-	message.mutable_file_chunk()->set_data(buffer->data(), bytesRead);
-	std::string serializedData = Packager::packageMessage(message);
-	asio::async_write(*m_socket, asio::buffer(serializedData.data(), serializedData.size()), 	[this, fileStream, chunkId](const asio::error_code& code, size_t bytesTransferred) {
-		if (!code) {
-			std::cout << "Sent chunk " << chunkId << " to client.\n";
-			sendFileHelper(fileStream, chunkId + 1);
-		} else {
-			std::cout << "Failed to send chunk " << chunkId << " to client. Error: " << code.message() << '\n';
-			sendError(file_transfer::Error::INTERNAL);
-		}
-		});
-}
 
-void ServerSession::sendError(file_transfer::Error::Code code){
+	if (bytesRead > 0) {
+		file_transfer::Message message;
+		message.mutable_file_chunk()->set_data(buffer->data(), bytesRead);
+		std::string serializedData = Packager::packageMessage(message);
+		asio::async_write(*m_socket, asio::buffer(serializedData.data(), serializedData.size()), [this, fileStream, fileIdentifier, chunkId](const asio::error_code& code, size_t bytesTransferred) {
+			if (!code) {
+				std::cout << "Sent chunk " << chunkId << " to client.\n";
+				sendFileHelper(fileIdentifier, chunkId + 1);
+			} else {
+				std::cout << "Failed to send chunk " << chunkId << " to client. Error: " << code.message() << '\n';
+				sendFileTransferError(file_transfer::ErrorCode::INTERNAL, fileIdentifier, "Failed to send file chunk.");
+			}
+			});
+	} else {
+		if (fileStream->eof()) {
+			std::cout << "Finished sending file." << '\n';
+			sendFileTransferComplete();
+		} else {
+			std::cout << "Failed to read from file stream." << '\n';
+			sendFileTransferError(file_transfer::ErrorCode::INTERNAL, fileIdentifier, "Failed to read from file stream.");
+		}
+	}
+}
+void ServerSession::sendFile(uint32_t fileIdentifier){
+	auto fileStream = m_activeFileTransfers[fileIdentifier];
+	if (!fileStream) {
+		std::cout << "No active file transfer found for ID: " << fileIdentifier << '\n';
+		sendFileTransferError(file_transfer::ErrorCode::INTERNAL, fileIdentifier, "No active file transfer found.");
+		return;
+	}
+	fileStream->seekg(0, std::ios::beg);
+	// Start sending the file
+	sendFileHelper(fileIdentifier, 0u);
+}
+void ServerSession::sendError(file_transfer::ErrorCode code){
 	file_transfer::Message message;
 	message.mutable_error()->set_code(code);
 	std::string serializedData = Packager::packageMessage(message);
@@ -144,6 +184,23 @@ void ServerSession::sendError(file_transfer::Error::Code code){
 			std::cout << "Sent error to client. Code: " << code << '\n';
 		}
 		});
+}
+
+void ServerSession::sendFileTransferError(file_transfer::ErrorCode code, uint32_t fileIdentifier, std::string_view errorMessage){
+	// Send error
+	file_transfer::Message message;
+	file_transfer::FileTransferError* errorMsg = message.mutable_file_transfer_error();
+	errorMsg->set_id(fileIdentifier);
+	errorMsg->set_code(code);
+	errorMsg->set_message(errorMessage.data(), errorMessage.size());
+	std::string serializedData = Packager::packageMessage(message);
+	asio::async_write(*m_socket, asio::buffer(serializedData.data(), serializedData.size()), [code, fileIdentifier](const asio::error_code& ec, size_t bytesTransferred) {
+		if (!ec) {
+			std::cout << "Sent file transfer error to client. Code: " << code << ", ID: " << fileIdentifier << '\n';
+		}
+		});
+	// Reset state related to the file transfer
+	m_activeFileTransfers.erase(fileIdentifier); 
 }
 
 void ServerSession::sendFileTransferComplete(){
@@ -157,16 +214,18 @@ void ServerSession::sendFileTransferComplete(){
 		});
 }
 
-void ServerSession::sendFileInfo(const std::filesystem::path& filePath, std::function<void()> onSent){
+void ServerSession::sendFileInfo(const std::filesystem::path& filePath, uint32_t fileIdentifier){
+	// Prepare FileInfo message
 	file_transfer::Message message;
-	auto* fileInfo = message.mutable_file_info();
+	file_transfer::FileInfo *fileInfo = message.mutable_file_info();
+	fileInfo->set_id(fileIdentifier);
 	fileInfo->set_name(filePath.filename().string());
 	fileInfo->set_size(std::filesystem::file_size(filePath));
+	// Send FileInfo message
 	std::string serializedData = Packager::packageMessage(message);
-	asio::async_write(*m_socket, asio::buffer(serializedData.data(), serializedData.size()), [onSent](const asio::error_code& code, size_t bytesTransferred) {
+	asio::async_write(*m_socket, asio::buffer(serializedData.data(), serializedData.size()), [](const asio::error_code& code, size_t bytesTransferred) {
 		if (!code) {
 			std::cout << "Sent file info to client.\n";
-			onSent();
 		}
 		});
 }

@@ -42,17 +42,6 @@ void ClientSession::sendFileListRequest(){
 	);
 }
 
-void ClientSession::sendAcknowledgement(bool success) {
-	file_transfer::Message message;
-	message.mutable_client_acknowledgement()->set_success(success);
-	std::string data = Packager::packageMessage(message);
-	asio::async_write(*m_socket, asio::buffer(data), [](const asio::error_code& code, size_t bytesTransferred){
-		if(!code){
-			std::cout << "Succecssfully sent client status to the server.\n";
-		}}
-	);
-}
-
 void ClientSession::sendReady()
 {
 	file_transfer::Message message;

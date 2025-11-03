@@ -23,7 +23,6 @@ public:
     void start();
     void sendFileTransferRequest(std::string_view fileName);
 	void sendFileListRequest();
-	void sendAcknowledgement(bool success);
 	void sendReady();
 private:
     void handleRead(std::shared_ptr<ReadBuffer> buffer, const asio::error_code& code, size_t bytesTransferred);
