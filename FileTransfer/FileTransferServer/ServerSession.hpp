@@ -39,7 +39,7 @@ private:
     void sendFile(uint32_t fileIdentifier);
     void sendError(file_transfer::ErrorCode code);
     void sendFileTransferError(file_transfer::ErrorCode code, uint32_t fileIdentifier, std::string_view errorMessage);
-    void sendFileTransferComplete();
+    void sendFileTransferComplete(uint32_t fileIdentifier);
     void sendFileInfo(const std::filesystem::path& filePath, uint32_t fileIdentifier);
     // Utilities
     inline uint32_t getNextIdentifier(){

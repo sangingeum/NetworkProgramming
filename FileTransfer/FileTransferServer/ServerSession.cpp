@@ -73,9 +73,9 @@ void ServerSession::handleFileTransferRequest(const file_transfer::FileTransferR
 		return;
 	}
 	uint32_t currentId = getNextIdentifier();
+	m_activeFileTransfers[currentId] = std::move(fileStream);
 	sendFileInfo(filePath, currentId);
 	// Now wait for ClientReady message before sending the file
-	m_activeFileTransfers[currentId] = std::move(fileStream);
 }
 void ServerSession::handleClientReady(const file_transfer::ClientReady& ready)
 {
@@ -134,7 +134,7 @@ void ServerSession::sendFileHelper(uint32_t fileIdentifier, uint32_t chunkId){
 	}
 	if(fileStream->eof()){
 		std::cout << "Finished sending file." << '\n';
-		sendFileTransferComplete();
+		sendFileTransferComplete(fileIdentifier);
 		return;
 	}
 	auto buffer = std::make_shared<std::vector<std::byte>>(maxChunkSize);
@@ -143,7 +143,9 @@ void ServerSession::sendFileHelper(uint32_t fileIdentifier, uint32_t chunkId){
 
 	if (bytesRead > 0) {
 		file_transfer::Message message;
-		message.mutable_file_chunk()->set_data(buffer->data(), bytesRead);
+		auto* fileChunk = message.mutable_file_chunk();
+		fileChunk->set_id(fileIdentifier);
+		fileChunk->set_data(buffer->data(), bytesRead);
 		std::string serializedData = Packager::packageMessage(message);
 		asio::async_write(*m_socket, asio::buffer(serializedData.data(), serializedData.size()), [this, fileStream, fileIdentifier, chunkId](const asio::error_code& code, size_t bytesTransferred) {
 			if (!code) {
@@ -157,7 +159,7 @@ void ServerSession::sendFileHelper(uint32_t fileIdentifier, uint32_t chunkId){
 	} else {
 		if (fileStream->eof()) {
 			std::cout << "Finished sending file." << '\n';
-			sendFileTransferComplete();
+			sendFileTransferComplete(fileIdentifier);
 		} else {
 			std::cout << "Failed to read from file stream." << '\n';
 			sendFileTransferError(file_transfer::ErrorCode::INTERNAL, fileIdentifier, "Failed to read from file stream.");
@@ -203,9 +205,9 @@ void ServerSession::sendFileTransferError(file_transfer::ErrorCode code, uint32_
 	m_activeFileTransfers.erase(fileIdentifier); 
 }
 
-void ServerSession::sendFileTransferComplete(){
+void ServerSession::sendFileTransferComplete(uint32_t fileIdentifier){
 	file_transfer::Message message;
-	message.mutable_file_transfer_complete();
+	message.mutable_file_transfer_complete()->set_id(fileIdentifier);
 	std::string serializedData = Packager::packageMessage(message);
 	asio::async_write(*m_socket, asio::buffer(serializedData.data(), serializedData.size()), [](const asio::error_code& code, size_t bytesTransferred) {
 		if (!code) {
