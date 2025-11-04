@@ -23,7 +23,7 @@ message FileTransferRequest {
     string name = 1;
 }
 message ClientReady {
-    uint32 id = 1; // identifier for the file transfer session
+    uint32 id = 1; // identifier for the file to be transferred
 }
 
 // server to client
@@ -37,17 +37,16 @@ message FileList {
 }
 
 message FileInfo {
-    uint32 id = 1; // identifier for the file transfer session
+    uint32 id = 1; // identifier for the file to be transferred
     string name = 2;
     int64 size = 3;
 }
 message FileChunk {
-    uint32 id = 1; // identifier for the file transfer session
+    uint32 id = 1; // identifier for the file to be transferred
     bytes data = 2;
-    bool last_chunk = 3;
 }
 message FileTransferComplete {
-    uint32 id = 1; // identifier for the file transfer session
+    uint32 id = 1; // identifier for the file to be transferred
 }
 
 // common
@@ -62,10 +61,10 @@ message Error {
     string message = 2;
 }
 
-// This is for errors specific to a file transfer session
-// It triggers a reset of that session
+// This is for errors specific to a file transfer
+// It triggers a reset of that transfer
 message FileTransferError {
-    uint32 id = 1; // identifier for the file transfer session
+    uint32 id = 1; // identifier for the file to be transferred
     ErrorCode code = 2;
     string message = 3;
 }

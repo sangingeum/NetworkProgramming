@@ -6,8 +6,9 @@ ClientSession::ClientSession(std::shared_ptr<tcp::socket> socket)
     m_parser.setHandler(file_transfer::Message::kFileList, [this](const file_transfer::Message& message) { handleFileList(message.file_list()); });
     m_parser.setHandler(file_transfer::Message::kFileInfo, [this](const file_transfer::Message& message) { handleFileInfo(message.file_info()); });
     m_parser.setHandler(file_transfer::Message::kFileChunk, [this](const file_transfer::Message& message) { handleFileChunk(message.file_chunk()); });
-    m_parser.setHandler(file_transfer::Message::kFileTransferComplete, [this](const file_transfer::Message& message) { handleFileTransferCompletion(message.file_transfer_complete()); });
+    m_parser.setHandler(file_transfer::Message::kFileTransferComplete, [this](const file_transfer::Message& message) { handleFileTransferComplete(message.file_transfer_complete()); });
     m_parser.setHandler(file_transfer::Message::kError, [this](const file_transfer::Message& message) { handleError(message.error()); });
+	m_parser.setHandler(file_transfer::Message::kFileTransferError, [this](const file_transfer::Message& message) { handleFileTransferError(message.file_transfer_error()); });
     std::cout << "Client connected to server from " << m_socket->remote_endpoint().address().to_string() << ":" << m_socket->remote_endpoint().port() << '\n';
 }
 
@@ -42,12 +43,31 @@ void ClientSession::sendFileListRequest(){
 	);
 }
 
-void ClientSession::sendReady()
+void ClientSession::sendReady(uint32_t fileIdentifier)
 {
 	file_transfer::Message message;
-	message.mutable_client_ready();
+	message.mutable_client_ready()->set_id(fileIdentifier);
 	std::string data = Packager::packageMessage(message);
-	// TODO
+	asio::async_write(*m_socket, asio::buffer(data.data(), data.size()), [](const asio::error_code& code, size_t bytesTransferred) {
+		if (!code) {
+			std::cout << "Successfully sent client ready message to the server.\n";
+		}
+		});
+}
+
+void ClientSession::sendFileTransferError(file_transfer::ErrorCode code, uint32_t fileIdentifier, std::string_view errorMessage) {
+	file_transfer::Message message;
+	auto* error = message.mutable_file_transfer_error();
+	error->set_id(fileIdentifier);
+	error->set_code(code);
+	error->set_message(errorMessage.data());
+	std::string data = Packager::packageMessage(message);
+	asio::async_write(*m_socket, asio::buffer(data.data(), data.size()), [](const asio::error_code& code, size_t bytesTransferred) {
+		if (!code) {
+			std::cout << "Successfully sent file transfer error to the server.\n";
+		}
+		});
+
 }
 
 void ClientSession::handleRead(std::shared_ptr<ReadBuffer> buffer, const asio::error_code& code, size_t bytesTransferred) {
@@ -62,6 +82,8 @@ void ClientSession::handleRead(std::shared_ptr<ReadBuffer> buffer, const asio::e
 }
 
 
+// Message handlers
+
 void ClientSession::handleFileList(const file_transfer::FileList& list) {
 	std::cout << "Received file list from the server:\n";
 	for (const auto& file : list.files()) {
@@ -74,20 +96,49 @@ void ClientSession::handleFileInfo(const file_transfer::FileInfo& info){
 	// make a random name
 	std::string filename = generateRandomUniqueFilename();
 	// open file
-	// TODO
-	
+	auto outFile = std::make_shared<std::ofstream>(filename, std::ios::binary);
+	if (!outFile->is_open() || !outFile->good()) {
+		std::cerr << "Failed to open file for writing: " << filename << '\n';
+		sendFileTransferError(file_transfer::ErrorCode::INTERNAL, info.id(), "Failed to open file for writing.");
+		return;
+	}
+	m_activeFileTransfers[info.id()] = outFile;
+	sendReady(info.id());
 }
 void ClientSession::handleFileChunk(const file_transfer::FileChunk& chunk){
-	// write to file
-
+	auto activeFile = m_activeFileTransfers[chunk.id()];
+	if (!activeFile) {
+		std::cerr << "No active file transfer found for ID: " << chunk.id() << '\n';
+		sendFileTransferError(file_transfer::ErrorCode::INTERNAL, chunk.id(), "No active file transfer found for the given ID.");
+		return;
+	}
+	if(!activeFile->good()){
+		std::cerr << "Error writing to file for ID: " << chunk.id() << '\n';
+		sendFileTransferError(file_transfer::ErrorCode::INTERNAL, chunk.id(), "Error writing to file.");
+		return;
+	}
+	activeFile->write(chunk.data().data(), chunk.data().size());
 }
-void ClientSession::handleFileTransferCompletion(const file_transfer::FileTransferComplete& complete){
-	// check file name collision
-	// change file name
-	// close file
+void ClientSession::handleFileTransferComplete(const file_transfer::FileTransferComplete& complete){
+	auto activeFile = m_activeFileTransfers[complete.id()];
+	if (!activeFile) {
+		std::cerr << "No active file transfer found for ID: " << complete.id() << '\n';
+		sendFileTransferError(file_transfer::ErrorCode::INTERNAL, complete.id(), "No active file transfer found for the given ID.");
+		return;
+	}
+	activeFile->close();
+	m_activeFileTransfers.erase(complete.id());
+	std::cout << "File transfer complete for ID: " << complete.id() << '\n';
+	// TODO: Change the filename to the original name if needed
 }
 void ClientSession::handleError(const file_transfer::Error& error){
+	std::cerr << "Received error from server: " << error.message() << " (code: " << static_cast<int>(error.code()) << ")\n";
+}
+
+
+void ClientSession::handleFileTransferError(const file_transfer::FileTransferError& error){
 	// stop reading and close file
+	m_activeFileTransfers.erase(error.id());
 }
 
 // File operations
