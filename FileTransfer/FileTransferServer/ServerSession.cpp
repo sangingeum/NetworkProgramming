@@ -123,7 +123,17 @@ void ServerSession::sendFileHelper(uint32_t fileIdentifier, uint32_t chunkId){
 		sendFileTransferError(file_transfer::ErrorCode::INTERNAL, fileIdentifier, "No active file transfer found.");
 		return;
 	}
-	if(!(fileStream->is_open() && fileStream->good())){
+	if(!fileStream->is_open()){
+		std::cout << "File stream is not open for ID: " << fileIdentifier << '\n';
+		sendFileTransferError(file_transfer::ErrorCode::INTERNAL, fileIdentifier, "File stream is not open.");
+		return;
+	}
+	if(fileStream->eof()){
+		std::cout << "Finished sending file." << '\n';
+		sendFileTransferComplete(fileIdentifier);
+		return;
+	}
+	if(!fileStream->good()){
 		std::cout << "File status not good" << '\n';
 		sendFileTransferError(file_transfer::ErrorCode::INTERNAL, fileIdentifier, "File stream is not in a good state.");
 		return;
@@ -132,11 +142,7 @@ void ServerSession::sendFileHelper(uint32_t fileIdentifier, uint32_t chunkId){
 		std::cout << "Starting to send file..." << '\n';
 		fileStream->seekg(0, std::ios::beg);
 	}
-	if(fileStream->eof()){
-		std::cout << "Finished sending file." << '\n';
-		sendFileTransferComplete(fileIdentifier);
-		return;
-	}
+	
 	auto buffer = std::make_shared<std::vector<std::byte>>(maxChunkSize);
 	fileStream->read(reinterpret_cast<char*>(buffer->data()), maxChunkSize);
 	std::streamsize bytesRead = fileStream->gcount();

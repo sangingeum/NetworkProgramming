@@ -16,7 +16,6 @@ void ClientSession::start(){
     auto buffer = std::make_shared<ReadBuffer>();
     m_socket->async_read_some(asio::buffer(buffer->data(), buffer->size()),
     std::bind(&ClientSession::handleRead, shared_from_this(), buffer, std::placeholders::_1, std::placeholders::_2));
-    sendFileListRequest();
 }
 
 void ClientSession::sendFileTransferRequest(std::string_view fileName){

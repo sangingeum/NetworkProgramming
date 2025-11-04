@@ -9,6 +9,12 @@ FileTransferClient::FileTransferClient(asio::io_context& context)
 {}
 
 void FileTransferClient::connect(std::string_view host, std::string_view port){
+	// If m_session is still valid, do not attempt to connect again.
+    if(!m_session.expired()){
+		std::cout << "Client is already connected to a server.\n";
+		return;
+	}
+
 	tcp::resolver::query query{ host.data() ,port.data() };
 	auto resolver = std::make_shared<tcp::resolver>(m_context); 
 	resolver->async_resolve(query, [this, resolver](const asio::error_code& code, tcp::resolver::iterator it) {
@@ -16,9 +22,17 @@ void FileTransferClient::connect(std::string_view host, std::string_view port){
 	});
 }
 
+std::shared_ptr<ClientSession> FileTransferClient::getSession(){
+	if(m_session.expired()){
+		return nullptr;
+	}
+	return m_session.lock();
+}
+
 void FileTransferClient::handleConnectionSuccess(std::shared_ptr<tcp::socket> socket, const asio::error_code& code) {
 	std::cout << "Succecssfully connected to the server.\n";
 	auto session = std::make_shared<ClientSession>(socket);
+	m_session = session;
 	session->start();
 }
 
