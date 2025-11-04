@@ -9,6 +9,8 @@
 #include "Parser.hpp"
 #include "Packager.hpp"
 #include <map>
+#include <iostream>
+#include <memory>
 
 using namespace asio::ip;
 

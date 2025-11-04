@@ -1,7 +1,8 @@
 #include "Parser.hpp"
 
 void Parser::appendData(const char* data, size_t length) {
-    m_buffer.append(reinterpret_cast<const char*>(data), length);
+    //TODO: length check
+    m_buffer.append(data, length);
 }
 
 bool Parser::tryParseMessage() {

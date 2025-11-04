@@ -1,6 +1,7 @@
 #pragma once
 #include "FileTransfer.pb.h"
 #include <string>
+#include <cstring>
 
 class Packager
 {

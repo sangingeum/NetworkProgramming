@@ -144,12 +144,13 @@ void ClientSession::handleFileTransferComplete(const file_transfer::FileTransfer
 			std::string extension = newPath.extension().string();
 			std::string originalNameWithoutExt = newPath.stem().string();
 			size_t counter = 1;
-			while(counter < 10000 && std::filesystem::exists(newPath)){
+			static const size_t maxAttempts = 10000;
+			while(counter < maxAttempts && std::filesystem::exists(newPath)){
 				// Question: Does this preserve the file extension?
 				newPath = m_curPath / (originalNameWithoutExt  + " (" + std::to_string(counter) + ")" + extension);
 				++counter;
 			}
-			if(counter == 1000){
+			if(counter == maxAttempts){
 				std::cerr << "Failed to rename file: " << originalName << " due to existing files.\n";
 			}
 		}
