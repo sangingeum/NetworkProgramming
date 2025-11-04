@@ -19,6 +19,8 @@ private:
     Parser m_parser;
     std::filesystem::path m_curPath;
 	std::map<uint32_t, std::shared_ptr<std::ofstream>> m_activeFileTransfers; // map of file ID to file stream
+	std::map<uint32_t, std::string> m_activeOriginalFileNames; // map of file ID to original file name
+	std::map<uint32_t, std::string> m_activeTempFileNames; // map of file ID to temp file name
 public:
     ClientSession(std::shared_ptr<tcp::socket> socket);
     void start();
@@ -26,6 +28,8 @@ public:
 	void sendFileListRequest();
 	void sendReady(uint32_t fileIdentifier);
 private:
+	// Utilities
+	void resetFileTransferState(uint32_t fileIdentifier);
 	// Send
 	void sendFileTransferError(file_transfer::ErrorCode code, uint32_t fileIdentifier, std::string_view errorMessage);
 	// Message handlers
@@ -38,5 +42,6 @@ private:
 	void handleFileTransferError(const file_transfer::FileTransferError& error);
 	// File operations
 	std::string generateRandomUniqueFilename();
+	
 };
 

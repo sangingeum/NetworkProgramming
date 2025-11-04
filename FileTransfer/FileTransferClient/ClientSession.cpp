@@ -54,6 +54,12 @@ void ClientSession::sendReady(uint32_t fileIdentifier)
 		});
 }
 
+void ClientSession::resetFileTransferState(uint32_t fileIdentifier){
+	m_activeFileTransfers.erase(fileIdentifier);
+	m_activeOriginalFileNames.erase(fileIdentifier);
+	m_activeTempFileNames.erase(fileIdentifier);
+}
+
 void ClientSession::sendFileTransferError(file_transfer::ErrorCode code, uint32_t fileIdentifier, std::string_view errorMessage) {
 	file_transfer::Message message;
 	auto* error = message.mutable_file_transfer_error();
@@ -102,6 +108,8 @@ void ClientSession::handleFileInfo(const file_transfer::FileInfo& info){
 		return;
 	}
 	m_activeFileTransfers[info.id()] = outFile;
+	m_activeOriginalFileNames[info.id()] = info.name();
+	m_activeTempFileNames[info.id()] = filename;
 	sendReady(info.id());
 }
 void ClientSession::handleFileChunk(const file_transfer::FileChunk& chunk){
@@ -126,9 +134,32 @@ void ClientSession::handleFileTransferComplete(const file_transfer::FileTransfer
 		return;
 	}
 	activeFile->close();
-	m_activeFileTransfers.erase(complete.id());
+	// Change the filename to the original name if needed
+	std::string originalName = m_activeOriginalFileNames[complete.id()];
+	std::string tempName = m_activeTempFileNames[complete.id()];
+	if (!originalName.empty()) {
+		std::filesystem::path newPath = m_curPath / originalName;
+		if (std::filesystem::exists(newPath)) {
+			// add a number suffix to avoid overwriting
+			std::string extension = newPath.extension().string();
+			std::string originalNameWithoutExt = newPath.stem().string();
+			size_t counter = 1;
+			while(counter < 10000 && std::filesystem::exists(newPath)){
+				// Question: Does this preserve the file extension?
+				newPath = m_curPath / (originalNameWithoutExt  + " (" + std::to_string(counter) + ")" + extension);
+				++counter;
+			}
+			if(counter == 1000){
+				std::cerr << "Failed to rename file: " << originalName << " due to existing files.\n";
+			}
+		}
+		std::filesystem::rename(m_curPath / tempName, newPath);
+		std::cout << "Renamed file to: " << newPath << '\n';
+	}
+	// Reset state
+	resetFileTransferState(complete.id());
 	std::cout << "File transfer complete for ID: " << complete.id() << '\n';
-	// TODO: Change the filename to the original name if needed
+	
 }
 void ClientSession::handleError(const file_transfer::Error& error){
 	std::cerr << "Received error from server: " << error.message() << " (code: " << static_cast<int>(error.code()) << ")\n";
@@ -137,7 +168,8 @@ void ClientSession::handleError(const file_transfer::Error& error){
 
 void ClientSession::handleFileTransferError(const file_transfer::FileTransferError& error){
 	// stop reading and close file
-	m_activeFileTransfers.erase(error.id());
+	resetFileTransferState(error.id());
+	std::cerr << "Received file transfer error from server for ID " << error.id() << ": " << error.message() << '\n';
 }
 
 // File operations
